@@ -1,0 +1,6 @@
+numpy==1.21.6
+selenium==3.141.0
+pytesseract==0.3.5
+opencv-python==4.6.0.66
+PyQt5==5.15.9
+python-dotenv==1.0.0
