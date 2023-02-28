@@ -26,7 +26,7 @@ The guide [here](https://linuxhint.com/install-tesseract-windows/) explains how 
 
 open terminal in the folder having the code and run:
 
-    python -m pip install requirements.txt
+    python -m pip install -r requirements.txt
 
 ## Configuring the code:
 Open the .env file near the code and edit the following:
