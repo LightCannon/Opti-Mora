@@ -2,7 +2,7 @@
 
 ## Prequsites
 	0. Clone this repository
-    1.**Python 3.7+**
+    1.**Python 3.7+** (download and install it from here https://www.python.org/downloads/release/python-370/)
     2.**Chrome browser** installed
     3.**Chrome driver**: install the chrome driver corresponding to chrome browser version from here (https://chromedriver.chromium.org/downloads). To know  chrome browser version, click on the three dots and select help->About Google Chrome. Download it and extract it inside the cloned repository
     4.**The path of your Chrome profile**. Note that you need to be logged in automatically in Trading view in the profile, otherwise codewon't work. To get the profile path, write chrome://version/ in the address bar and press enter. You will long list of configurations, and "Profile Path" is one of them. the value of "Profile Path" (after "\Default" from its end) is what u need. It should look like this C:\Users\<USERNAME>\AppData\Local\Google\Chrome\User Data
