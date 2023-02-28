@@ -25,7 +25,7 @@
         
 
 ## Running the code:
-
+	in cmd terminal in the folder having the cloned code,
     run: python app.py
 
 ## Operation:
