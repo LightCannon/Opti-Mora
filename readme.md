@@ -1,34 +1,34 @@
 # Trading View Optimizer
 
 ## Prequsites
-	0. Clone this repository
-    1.**Python 3.7+** (download it from here https://www.python.org/downloads/release/python-370/ then install it)
+    1.**Python 3.7+**
     2.**Chrome browser** installed
-    3.**Chrome driver**: dowload the chrome driver corresponding to chrome browser version  from here (https://chromedriver.chromium.org/downloads). To know  chrome browser version, click on the three dots and select help->About Google Chrome (version number we need is the first 3 numbers, i,e,:110.x). Download it and extract it inside the cloned repository
-    4.**The path of your Chrome profile**. Note that you need to be logged in automatically in Trading view in the profile, otherwise codewon't work. To get the profile path, write chrome://version/ in the browser address bar and press enter . You will long list of configurations, and "Profile Path" is one of them. the value of "Profile Path" (after removing "\Default" from its end) is what u need. It should look like this C:\Users\<USERNAME>\AppData\Local\Google\Chrome\User Data
-    5.**Install tesseract (used for OCR)**. The guide here (https://linuxhint.com/install-tesseract-windows/) explains how to install it properly. Note that we need the exe path, it will be something like C:\Program Files\Tesseract-OCR\tesseract.exe
+    3.**Chrome driver**: install the chrome driver corresponding to chrome browser version from here (https://chromedriver.chromium.org/downloads). To know  chrome browser version, click on the three dots and select help->About Google Chrome. Download it and extract it near the code
+    4.**The path of your Chrome profile**. Note that you need to be logged in automatically in Trading view in the profile, otherwise codewon't work. To get the profile path, write chrome://version/ in the address bar and press enter. You will long list of configurations, and "Profile Path" is one of them. the value of "Profile Path" (after "\Default" from its end) is what u need. It should look like this C:\Users\<USERNAME>\AppData\Local\Google\Chrome\User Data
+    5.**Install tesseract (used for OCR)**. The guide here (https://linuxhint.com/install-tesseract-windows/) explains how to install it properly. Note that we need its path, it will be something like C:\Program Files\Tesseract-OCR\tesseract.exe
 
 
 ## Installing:
     open terminal in the folder having the code and run: 
-    python -m pip install -r requirements.txt
+    python -m pip install requirements.txt
 
 ## Configuring the code:
     open the .env file near the code and edit the following configs:
-        1- STRATEGY: link to the strategy where optimizations will be done
+        TESSERACT_CMD: path to tesseract.exe (Prequsites step no.5)
 
-        2- TESSERACT_CMD: path to tesseract.exe (Prequsites step no.5)
-
-        3- CHROME_PROFILE: path to google chrome profile having trading view auto logged-in (Prequsites step np.4)
-
-        4- CSV_PATH: path to which the code will add values from the yellow label
-        
 
 ## Running the code:
-	in cmd terminal in the folder having the cloned code,
+
     run: python app.py
 
 ## Operation:
+    0. Fill the following data:
+        - Strategy Chart URL: the share link of the chat (example: https://www.tradingview.com/chart/XYZABC/)
+        - Google Chrome profile path:  path to google chrome profile having trading view auto logged-in (Prequsites step np.4)
+        - Output CSV: name of the output csv file.
+
+        ![alt text](https://github.com/LightCannon/Opti-Mora/images/1.jpg)
+
     1.**Strategy paramters**:
     for the first time for a strategy, the app needs to know the strategy parameters. To do so, click on "Capture" button. It will open the strategy then figures its parameters by looping over them
 
