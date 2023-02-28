@@ -1,7 +1,7 @@
 import json
-from dotenv import load_dotenv
 import numpy as np
 import itertools
+import dotenv
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -39,7 +39,7 @@ class Form(QMainWindow):
         self.initUI()
     
     def clear_layout(self, layout):
-        while layout.count() > 1:
+        while layout.count() > 2:
             item = layout.takeAt(1)
             widget = item.widget()
             if widget is not None:
@@ -64,6 +64,18 @@ class Form(QMainWindow):
     def execute(self):
         # Initialize an empty dictionary to hold the form data
         # self.form_data['']
+        try:
+            dotenv_file = dotenv.find_dotenv()
+            os.environ["CSV_PATH"] = self.t3.text()
+            os.environ["CHROME_PROFILE"] = self.t2.text()
+            os.environ["STRATEGY"] = self.t1.text()
+            
+            dotenv.set_key(dotenv_file, "CSV_PATH", os.environ["CSV_PATH"])
+            dotenv.set_key(dotenv_file, "CHROME_PROFILE", os.environ["CHROME_PROFILE"])
+            dotenv.set_key(dotenv_file, "STRATEGY", os.environ["STRATEGY"])
+        except Exception as e:
+            pass
+        
         for i, row in enumerate(self.form_data):
             if row["is_input"]:
                 use = self.form_data[i]['useW'].isChecked()
@@ -97,7 +109,6 @@ class Form(QMainWindow):
                     
                 self.form_data[i]['data'] = {'value': value, 'use': use}  
 
-
         # generating combinations
         possible_values = [row['data']['value'] for row in self.form_data]
         combinations = list(itertools.product(*possible_values))              
@@ -125,14 +136,55 @@ class Form(QMainWindow):
         group_box_layout.addWidget(capture_btn)
         group_box_layout.addWidget(execute_btn)
         group_box.setLayout(group_box_layout)
+        
+        group_box2 = QGroupBox()
+        group_box_layout2 = QVBoxLayout()
+        
+        w1 = QWidget()
+        layout1 = QHBoxLayout(w1)
+        
+        w2 = QWidget()
+        layout2 = QHBoxLayout(w2)
+        
+        w3 = QWidget()
+        layout3 = QHBoxLayout(w3)
+        
+        l1 = QLabel("Strategy Chart URL")
+        self.t1 = QLineEdit(os.getenv("STRATEGY", ""))
+        layout1.addWidget(l1)
+        layout1.addWidget(self.t1)
+        layout1.setContentsMargins(9,0,9,0)
+        
+        l2 = QLabel("Chrome Profile Path")
+        self.t2 = QLineEdit(os.getenv("CHROME_PROFILE", ""))
+        layout2.addWidget(l2)
+        layout2.addWidget(self.t2)
+        layout2.setContentsMargins(9,0,9,0)
+        
+        l3 = QLabel("Output CSV")
+        self.t3 = QLineEdit(os.getenv("CSV_PATH", ""))
+        layout3.addWidget(l3)
+        layout3.addWidget(self.t3)
+        layout3.setContentsMargins(9,0,9,0)
+        
+        
+        
+        group_box_layout2.addWidget(w1)
+        group_box_layout2.addWidget(w2)
+        group_box_layout2.addWidget(w3)
+        group_box_layout2.setSpacing(4)
+        
+        
+        group_box2.setLayout(group_box_layout2)
+        
+        self.layout_.addWidget(group_box2)
         self.layout_.addWidget(group_box)
         
         self.setCentralWidget(self.widget)
         # self.setLayout(self.layout_)
         self.setStatusBar(self.footer)
         self.setWindowTitle("OptiMora")
-        
-        
+              
     def initUI(self):
         # Clear the current UI
         self.clear_layout(self.layout_)
@@ -219,7 +271,7 @@ class Form(QMainWindow):
 
 if __name__ == "__main__":
     import sys
-    load_dotenv()
+    dotenv.load_dotenv()
     app = QApplication(sys.argv)
     ex = Form()
     ex.show()
