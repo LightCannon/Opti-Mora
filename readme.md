@@ -35,7 +35,7 @@ Open the .env file near the code and edit the following:
 
 
 ## Running the code:
-In a cmd terminal in the folder having the cloned code run
+In a cmd terminal in the folder having the cloned code run [here is how](https://stackoverflow.com/a/23320681/5081244)
 ```
 python app.py
 ```

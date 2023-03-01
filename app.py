@@ -48,6 +48,19 @@ class Form(QMainWindow):
                 self.clear_layout(item.layout())
     
     def capture(self):
+        
+        try:
+            dotenv_file = dotenv.find_dotenv()
+            os.environ["CSV_PATH"] = self.t3.text()
+            os.environ["CHROME_PROFILE"] = self.t2.text()
+            os.environ["STRATEGY"] = self.t1.text()
+            
+            dotenv.set_key(dotenv_file, "CSV_PATH", os.environ["CSV_PATH"])
+            dotenv.set_key(dotenv_file, "CHROME_PROFILE", os.environ["CHROME_PROFILE"])
+            dotenv.set_key(dotenv_file, "STRATEGY", os.environ["STRATEGY"])
+        except Exception as e:
+            print(str(e))
+        
         ret = self.engine.navigate_to_strategy(True)  
         self.engine.quit()
         
@@ -74,7 +87,7 @@ class Form(QMainWindow):
             dotenv.set_key(dotenv_file, "CHROME_PROFILE", os.environ["CHROME_PROFILE"])
             dotenv.set_key(dotenv_file, "STRATEGY", os.environ["STRATEGY"])
         except Exception as e:
-            pass
+            print(str(e))
         
         for i, row in enumerate(self.form_data):
             if row["is_input"]:
