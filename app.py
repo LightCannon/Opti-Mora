@@ -2,6 +2,8 @@ import json
 import numpy as np
 import itertools
 import dotenv
+from threading import Thread
+from functools import partial
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -22,6 +24,7 @@ from PyQt5.QtWidgets import QApplication, QCheckBox, QComboBox, QGridLayout, QGr
 from chromeengine import *
 
 class Form(QMainWindow):
+    stop_signal = pyqtSignal()
     def __init__(self, form_data=[]):
         super().__init__()
         self.form_data = form_data
@@ -30,7 +33,10 @@ class Form(QMainWindow):
         self.footer = QStatusBar()
         self.footer.addPermanentWidget(QLabel("By Camilo Mora and LightCannon"))
         self.engine = ChomeDriver()  
-        
+        self.engine.done.connect(self.execution_finished)
+        self.stop_signal.connect(self.engine.stop_interupt)
+        self._thread_ = None
+        self.threaded = True
         self.base_init()
         
     def load_params(self):  
@@ -48,9 +54,12 @@ class Form(QMainWindow):
                 self.clear_layout(item.layout())
     
     def capture(self):
-        
         try:
             dotenv_file = dotenv.find_dotenv()
+            if len(dotenv_file) == 0:
+                with open('.env', 'w') as env: pass
+                dotenv_file = dotenv.find_dotenv()
+            
             os.environ["CSV_PATH"] = self.t3.text()
             os.environ["CHROME_PROFILE"] = self.t2.text()
             os.environ["STRATEGY"] = self.t1.text()
@@ -67,18 +76,25 @@ class Form(QMainWindow):
         done = ret is not None
         if done:
             self.load_params()
-            self.initUI()
+            # self.initUI()
             # Show success message
             QMessageBox.information(QWidget(), "Success", "Form data captured successfully!")
         else:
             # Show error message
             QMessageBox.critical(QWidget(), "Error", "Failed to capture form data.")
     
-    def execute(self):
+    def execute(self, activeTicker=True):
         # Initialize an empty dictionary to hold the form data
         # self.form_data['']
+        if self.engine.running:
+            return
+        
         try:
             dotenv_file = dotenv.find_dotenv()
+            if len(dotenv_file) == 0:
+                with open('.env', 'w') as env: pass
+                dotenv_file = dotenv.find_dotenv()
+                
             os.environ["CSV_PATH"] = self.t3.text()
             os.environ["CHROME_PROFILE"] = self.t2.text()
             os.environ["STRATEGY"] = self.t1.text()
@@ -126,9 +142,17 @@ class Form(QMainWindow):
         possible_values = [row['data']['value'] for row in self.form_data]
         combinations = list(itertools.product(*possible_values))              
 
-        self.engine.execute(self.form_data, combinations)
-        self.engine.quit()
-        QMessageBox.information(QWidget(), "Success", "Simulation finished successfully!")
+        if not self.threaded:
+            self.engine.execute(self.form_data, combinations, activeTicker=activeTicker)
+        else:
+            self._thread_ = Thread(target=self.engine.execute,
+                               args=(self.form_data, combinations), kwargs={'activeTicker':activeTicker})
+            self._thread_.start()
+        
+    def execution_finished(self):
+        # self.engine.quit()
+        QMessageBox.information(self, "Success", "Simulation finished successfully!")
+        self._thread_ = None
     
     def base_init(self):
         # Load parameters button
@@ -142,12 +166,20 @@ class Form(QMainWindow):
 
         # Execute button
         execute_btn = QPushButton('Execute')
-        execute_btn.clicked.connect(self.execute)
+        execute_btn.clicked.connect(partial(self.execute, False))
+        
+        execute_active_btn = QPushButton('Execute Active Ticker')
+        execute_active_btn.clicked.connect(partial(self.execute, True))
+        
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.execute_stop)
 
         group_box_layout = QHBoxLayout()
         group_box_layout.addWidget(load_params_btn)
         group_box_layout.addWidget(capture_btn)
         group_box_layout.addWidget(execute_btn)
+        group_box_layout.addWidget(execute_active_btn)
+        group_box_layout.addWidget(stop_btn)
         group_box.setLayout(group_box_layout)
         
         group_box2 = QGroupBox()
@@ -197,7 +229,10 @@ class Form(QMainWindow):
         # self.setLayout(self.layout_)
         self.setStatusBar(self.footer)
         self.setWindowTitle("OptiMora")
-              
+    
+    def execute_stop(self):
+        self.stop_signal.emit()        
+    
     def initUI(self):
         # Clear the current UI
         self.clear_layout(self.layout_)
