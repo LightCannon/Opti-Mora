@@ -4,6 +4,7 @@ import itertools
 import dotenv
 from threading import Thread
 from functools import partial
+import resources_rc
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -18,9 +19,12 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget, 
     QMessageBox,
-    QStatusBar
+    QStatusBar,
+    QScrollArea
 )
 from PyQt5.QtWidgets import QApplication, QCheckBox, QComboBox, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton, QSizePolicy, QDoubleSpinBox, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFontDatabase, QFont
 from chromeengine import *
 
 class Form(QMainWindow):
@@ -29,6 +33,10 @@ class Form(QMainWindow):
         super().__init__()
         self.form_data = form_data
         self.widget = QWidget()
+        
+        # self.fontDB = QFontDatabase()
+        self.id = QFontDatabase.addApplicationFont(":/ahronbd.ttf")
+        
         self.layout_ = QVBoxLayout(self.widget)
         self.footer = QStatusBar()
         self.footer.addPermanentWidget(QLabel("By Camilo Mora and LightCannon"))
@@ -37,7 +45,18 @@ class Form(QMainWindow):
         self.stop_signal.connect(self.engine.stop_interupt)
         self._thread_ = None
         self.threaded = True
+        
+        self.parameters = []
+        
         self.base_init()
+        
+        scroll = QScrollArea()
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self.widget)
+        
+        self.setCentralWidget(scroll)
         
     def load_params(self):  
         with open(r"strategy_params.json", "r") as read_file:
@@ -45,7 +64,7 @@ class Form(QMainWindow):
         self.initUI()
     
     def clear_layout(self, layout):
-        while layout.count() > 2:
+        while layout.count() > 3:
             item = layout.takeAt(1)
             widget = item.widget()
             if widget is not None:
@@ -71,7 +90,7 @@ class Form(QMainWindow):
             print(str(e))
         
         ret = self.engine.navigate_to_strategy(True)  
-        self.engine.quit()
+        # self.engine.quit()
         
         done = ret is not None
         if done:
@@ -79,6 +98,7 @@ class Form(QMainWindow):
             # self.initUI()
             # Show success message
             QMessageBox.information(QWidget(), "Success", "Form data captured successfully!")
+            self.sender().setDisabled(True)
         else:
             # Show error message
             QMessageBox.critical(QWidget(), "Error", "Failed to capture form data.")
@@ -86,8 +106,8 @@ class Form(QMainWindow):
     def execute(self, activeTicker=True):
         # Initialize an empty dictionary to hold the form data
         # self.form_data['']
-        if self.engine.running:
-            return
+        # if self.engine.running:
+        #     return
         
         try:
             dotenv_file = dotenv.find_dotenv()
@@ -124,6 +144,9 @@ class Form(QMainWindow):
                 use = self.form_data[i]['useW'].isChecked()
                 if use:
                     value = row["value"]
+                    allowed = row['dropOpts'].text().lower().split(';')
+                    value = [v for v in value if v.lower() in allowed]
+                    
                 else:
                     value = [None]
                 
@@ -143,10 +166,15 @@ class Form(QMainWindow):
         combinations = list(itertools.product(*possible_values))              
 
         if not self.threaded:
-            self.engine.execute(self.form_data, combinations, activeTicker=activeTicker)
+            self.engine.execute(self.form_data, combinations, 
+                                activeTicker=activeTicker,
+                                isdeep = self.deep.isChecked())
         else:
             self._thread_ = Thread(target=self.engine.execute,
-                               args=(self.form_data, combinations), kwargs={'activeTicker':activeTicker})
+                               args=(self.form_data, combinations), 
+                               kwargs={'activeTicker':activeTicker,
+                                       'isdeep':self.deep.isChecked()
+                                       })
             self._thread_.start()
         
     def execution_finished(self):
@@ -165,21 +193,27 @@ class Form(QMainWindow):
         capture_btn.clicked.connect(self.capture)
 
         # Execute button
-        execute_btn = QPushButton('Execute')
+        execute_btn = QPushButton('Run On Watchlist')
         execute_btn.clicked.connect(partial(self.execute, False))
         
-        execute_active_btn = QPushButton('Execute Active Ticker')
+        execute_active_btn = QPushButton('Run On  Active Ticker')
         execute_active_btn.clicked.connect(partial(self.execute, True))
         
         stop_btn = QPushButton('Stop')
         stop_btn.clicked.connect(self.execute_stop)
 
+        self.deep = QCheckBox()
+        self.deep.setText("Deep")
+        
+        
         group_box_layout = QHBoxLayout()
-        group_box_layout.addWidget(load_params_btn)
+        # group_box_layout.addWidget(load_params_btn)
         group_box_layout.addWidget(capture_btn)
         group_box_layout.addWidget(execute_btn)
         group_box_layout.addWidget(execute_active_btn)
         group_box_layout.addWidget(stop_btn)
+        group_box_layout.addWidget(self.deep)
+        
         group_box.setLayout(group_box_layout)
         
         group_box2 = QGroupBox()
@@ -207,9 +241,14 @@ class Form(QMainWindow):
         layout2.setContentsMargins(9,0,9,0)
         
         l3 = QLabel("Output CSV")
-        self.t3 = QLineEdit(os.getenv("CSV_PATH", ""))
+        l3.setVisible(False)
+        
+        self.t3 = QLineEdit(os.getenv("CSV_PATH", "Optimora"))
+        self.t3.setVisible(False)
+       
         layout3.addWidget(l3)
         layout3.addWidget(self.t3)
+        
         layout3.setContentsMargins(9,0,9,0)
         
         
@@ -222,10 +261,18 @@ class Form(QMainWindow):
         
         group_box2.setLayout(group_box_layout2)
         
+        
+        logo = QLabel()
+        logo.setAlignment(Qt.AlignHCenter)
+        logo.setFont(QFont(QFontDatabase.applicationFontFamilies(self.id)[0], 40))
+        # logo.setTextFormat()
+        logo.setText('<font color="black"> Opti</font><font color="#0370BE">MORA</font>')
+        
+        self.layout_.addWidget(logo)
         self.layout_.addWidget(group_box2)
         self.layout_.addWidget(group_box)
         
-        self.setCentralWidget(self.widget)
+        # self.setCentralWidget(self.widget)
         # self.setLayout(self.layout_)
         self.setStatusBar(self.footer)
         self.setWindowTitle("OptiMora")
@@ -278,10 +325,15 @@ class Form(QMainWindow):
             elif row["is_dropbox"]:
                 main_widget = QComboBox()
                 main_widget.addItems(row["value"])
+                
+                options_widget = QLineEdit(';'.join(self.form_data[i]['value']))
+                
                 group_box_layout.addWidget(main_widget)
+                group_box_layout.addWidget(options_widget)
                 
                 self.form_data[i]['useW'] = check_use
                 self.form_data[i]['dropW'] = main_widget
+                self.form_data[i]['dropOpts'] = options_widget
                 
             elif row["is_checkbox"]:
                 main_widget = QCheckBox()
@@ -300,7 +352,12 @@ class Form(QMainWindow):
                     max_widget.setEnabled(False)
                     step_widget.setEnabled(False)
                     check_use.stateChanged.connect(lambda state, w=main_widget, m=min_widget, M=max_widget, Z=step_widget: self.enable_disable_widgets(state, w, m, M, Z))
-                    
+                
+                elif row['is_dropbox']:
+                    all_opts = self.form_data[i]['dropOpts']
+                    all_opts.setEnabled(False)
+                    check_use.stateChanged.connect(lambda state, w=all_opts: self.enable_disable_opts(state, w))
+                
                 group_box_layout.addWidget(main_widget)
                 group_box.setLayout(group_box_layout)
                 self.layout_.addWidget(group_box)
@@ -316,9 +373,29 @@ class Form(QMainWindow):
             min_edit.setEnabled(False)
             max_edit.setEnabled(False)
             step_edit.setEnabled(False)
+    
+    def enable_disable_opts(self, state, widget):
+        if state == 2:
+            widget.setEnabled(True)
+        else:
+            widget.setEnabled(False)
 
 if __name__ == "__main__":
     import sys
+    if sys.getwindowsversion().major <10:
+        import ctypes
+        awareness = ctypes.c_int()
+        errorCode = ctypes.windll.shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
+        errorCode = ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        os.environ['QT_FONT_DPI'] = '118'
+    
+    else:
+        if hasattr(Qt, 'AA_EnableHighDpiScaling'):
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    
+    
     dotenv.load_dotenv()
     app = QApplication(sys.argv)
     ex = Form()
