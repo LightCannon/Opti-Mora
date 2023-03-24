@@ -186,7 +186,14 @@ class ChomeDriver(QObject):
                             input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
                             input = input_element.find_elements_by_css_selector('.input-oiYdY6I4')[0]
                             # self.driver.execute_script("arguments[0].value = '';", input)
-                            self.fill_element(input, str(combination[index]))
+                            
+                            isfloat = defaults[index+1].find('.') > 0
+                            if not isfloat:
+                                val = str(int(combination[index]))
+                            else:
+                                val = str(combination[index])
+                                
+                            self.fill_element(input, val)
                             # self.driver.execute_script("arguments[0].value = arguments[1];", input, str(combination[index]))
                             
                         elif form_data[index]['is_dropbox']:
