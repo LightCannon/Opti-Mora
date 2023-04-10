@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import dotenv
 from pathlib import Path
 from shutil import rmtree
+import re
 
 from selenium.webdriver.common.keys import Keys
 from concurrent.futures import ThreadPoolExecutor
@@ -135,11 +136,11 @@ class ChomeDriver(QObject):
         
         
         # making sure tickers are active
-        self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "symbolName-FeemEKQq")))
-        tickers = self.driver.find_elements_by_class_name('symbolName-FeemEKQq')
+        self.wait.until(EC.presence_of_element_located((By.XPATH, ".//*[contains(@class, 'symbolName-')]")))
+        tickers = self.driver.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
         activeTicker = kwargs.get('activeTicker')
         isdeep = kwargs.get('isdeep')
-        deep = self.driver.find_elements_by_class_name('input-Wv0rGnT8')[-1]
+        deep = self.driver.find_elements_by_xpath(".//*[contains(@class, 'input-') and @role='switch']")[-1]
         state = deep.is_selected()
         if isdeep^state:
             self.click(deep)
@@ -152,7 +153,7 @@ class ChomeDriver(QObject):
                 tickers[ti].click()
                 self.delay(4)
 
-            tickername = self.driver.find_elements_by_class_name('text-_iN2IH5A')[-1].text
+            tickername = self.driver.find_elements_by_xpath(".//*[contains(@id, 'symbol-search')]")[0].text
             # making sure deep is selected if wanted
             
             
@@ -167,9 +168,10 @@ class ChomeDriver(QObject):
                 self.click_settings_button()
                 self.click_input_tab()
                 print(f"Working on combination no. {j}")
-                content = self.driver.find_element_by_class_name('content-mTbR5jYu')
-                rows = content.find_elements_by_css_selector('.cell-mTbR5jYu')
-                
+                panel = self.driver.find_element_by_xpath("//*[contains(@data-name, 'indicator-properties-dialog')]")
+                content = panel.find_elements_by_xpath(".//*[contains(@class, 'content-')]")[0]
+                rows = content.find_elements_by_xpath(".//*[contains(@class, 'cell-')]")
+        
                 ok_button = self.driver.find_elements_by_css_selector('[data-name="submit-button"]')[0]
                 # Filling data
                 while i < len(rows):
@@ -183,23 +185,26 @@ class ChomeDriver(QObject):
   
                     if combination[index] is not None:
                         if form_data[index]['is_input']:
-                            input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
-                            input = input_element.find_elements_by_css_selector('.input-oiYdY6I4')[0]
+                            input_element = rows[i+1].find_elements_by_xpath(".//*[contains(@class, 'container-')]")[0]
+                            input = input_element.find_elements_by_xpath(".//*[contains(@class, 'input-')]")[0]
                             # self.driver.execute_script("arguments[0].value = '';", input)
-                            
-                            isfloat = defaults[index+1].find('.') > 0
-                            if not isfloat:
-                                val = str(int(combination[index]))
+                            if form_data[index]['is_free']:
+                                val = combination[index]
+                                self.fill_element(input, val, 9)
                             else:
-                                val = str(combination[index])
+                                isfloat = defaults[index+1].find('.') > 0
+                                if not isfloat:
+                                    val = str(int(combination[index]))
+                                else:
+                                    val = str(combination[index])
                                 
-                            self.fill_element(input, val)
+                                self.fill_element(input, val)
                             # self.driver.execute_script("arguments[0].value = arguments[1];", input, str(combination[index]))
                             
                         elif form_data[index]['is_dropbox']:
-                            input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
+                            input_element = rows[i+1].find_elements_by_xpath(".//*[contains(@class, 'container-')]")[0]
                             self.click(input_element)
-                            options = self.driver.find_element_by_class_name('menuBox-biWYdsXC').find_elements_by_css_selector('[role="option"]')
+                            options = self.driver.find_element_by_xpath(".//*[contains(@class, 'menuBox-')]").find_elements_by_css_selector('[role="option"]')
                             target_option = [o for o in options if o.text == combination[index]][0]
                             self.click(target_option)
 
@@ -216,7 +221,7 @@ class ChomeDriver(QObject):
                 self.delay(1)
 
                 if isdeep:
-                    generate = self.driver.find_elements_by_class_name('content-OvB35Th_')[-1]
+                    generate = self.driver.find_element_by_xpath(".//*[contains(@class, 'generateReportBtn')]")
                     generate.click()
                 
                 
@@ -230,7 +235,7 @@ class ChomeDriver(QObject):
                     print("Cannot read output out of this combination")
                     continue
                 
-                download_btn = self.driver.find_elements_by_css_selector('.no-content-msfP1I4t')[-1]
+                download_btn = self.driver.find_elements(By.CLASS_NAME, "icon-bYDQcOkp")[-1]
                 
                 # print(download_btn)
                 self.click(download_btn)
@@ -254,7 +259,8 @@ class ChomeDriver(QObject):
                 idx += 1
                 
                 self.driver.find_element(By.XPATH, '//button[text()="Overview"]').click()
-                net_profit = self.driver.find_elements_by_xpath("//*[contains(@class, 'Value-b1pZpka9')]")[0].text.replace('−', '-')
+                backtesting_pane = self.driver.find_elements_by_class_name('bottom-widgetbar-content')[-1]
+                net_profit = backtesting_pane.find_elements_by_xpath(".//*[contains(@class, 'Value-')]")[0].text.replace('−', '-')
                 
                 data_values = list((new_path,*tuple(str(c) if c is not None else ' ' for c in combination )))
                 data_values.append(net_profit)
@@ -280,8 +286,8 @@ class ChomeDriver(QObject):
                 break
             
             # just updating again
-            self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "symbolName-FeemEKQq")))
-            tickers = self.driver.find_elements_by_class_name('symbolName-FeemEKQq')
+            self.wait.until(EC.presence_of_element_located((By.XPATH, ".//*[contains(@class, 'symbolName-')]")))
+            tickers = self.driver.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
 
         tstamp = datetime.now().strftime("%m-%d-%Y--%H-%M-%S")
         summary_data[1][-1] = summary_data[2][-1]
@@ -355,8 +361,8 @@ class ChomeDriver(QObject):
     def delay(self,delay):
         time.sleep(delay)
     
-    def fill_element(self,element,data):
-        for i in range(4):
+    def fill_element(self,element,data, del_count=4):
+        for i in range(del_count):
             element.send_keys(Keys.BACKSPACE)
             
         for char in data:
@@ -372,24 +378,25 @@ class ChomeDriver(QObject):
     def click_strategy_tester(self):
         """check if strategy tester tab is the active tab. If it's not, click to open tab."""
         try:
-            self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "title-uqXh1Q3i")))
+            self.wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "titleText-n3UmcVi3")))
 
-            strategy_tester_tab = self.driver.find_elements(By.CLASS_NAME, "title-uqXh1Q3i")
+            strategy_tester_tab = self.driver.find_elements(By.CLASS_NAME, "title-n3UmcVi3")
             for index, web_element in enumerate(strategy_tester_tab):
                 if web_element.text == "Strategy Tester":
                     active_tab = strategy_tester_tab[index].get_attribute("data-active")
                     if active_tab == "false":
                         strategy_tester_tab[index].click()
-                        break
+                    break
         except Exception:
             print("Could Not Click Strategy Tester Tab. Please Check web element's class name in commands.py file.")
 
     def click_settings_button(self):
         """click settings button."""
         try:
-            self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "light-button-msfP1I4t")))
+            # self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "light-button-msfP1I4t")))
+            self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "icon-bYDQcOkp")))
 
-            settings_button = self.driver.find_element(By.CLASS_NAME, "light-button-msfP1I4t")
+            settings_button = self.driver.find_element(By.CLASS_NAME, "icon-bYDQcOkp")
             settings_button.click()
 
         except Exception:
@@ -399,25 +406,28 @@ class ChomeDriver(QObject):
         """click the input tab."""
         try:
             self.wait.until(
-                EC.presence_of_element_located((By.CLASS_NAME, "tab-Rf5MOAG5"))
+                # EC.presence_of_element_located((By.CLASS_NAME, "tab-Rf5MOAG5"))
+                EC.element_to_be_clickable((By.XPATH, '//*[@data-id="indicator-properties-dialog-tabs-inputs"]'))
             )
             
-            input_tab = self.driver.find_element(By.CLASS_NAME, "tab-Rf5MOAG5")
-            if input_tab.get_attribute("data-value") == "inputs":
+            # input_tab = self.driver.find_element(By.CLASS_NAME, "tab-Rf5MOAG5")
+            input_tab = self.driver.find_element(By.XPATH, '//*[@data-id="indicator-properties-dialog-tabs-inputs"]')
+            if input_tab.text.lower() == "inputs":
                 # input_tab.click()
                 self.click(input_tab)
                 return True
             return False
         except IndexError:
-            print("Could not input tab button. Please check web_element's in commands.py file.")
+            print("Could not get input tab button. Please check web_element's in commands.py file.")
             return False
     
     def capture_defaults(self):
         self.click_strategy_tester()
         self.click_settings_button()
         self.click_input_tab()
-        content = self.driver.find_element_by_class_name('content-mTbR5jYu')
-        rows = content.find_elements_by_css_selector('.cell-mTbR5jYu')
+        panel = self.driver.find_element_by_xpath("//*[contains(@data-name, 'indicator-properties-dialog')]")
+        content = panel.find_elements_by_xpath(".//*[contains(@class, 'content-')]")[0]
+        rows = content.find_elements_by_xpath(".//*[contains(@class, 'cell-')]")
         self.values = [' ']
         
         i = 0
@@ -432,16 +442,15 @@ class ChomeDriver(QObject):
             
             # self.highlight(rows[i], 2, "red", 1)
             if not is_checkbox:    
-                input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
-                
-                is_input = len(input_element.find_elements_by_css_selector('.input-oiYdY6I4')) > 0
-                is_dropbox = len(input_element.find_elements_by_class_name('button-allnSfnt')) > 0
+                input_element = rows[i+1].find_elements_by_xpath(".//*[contains(@class, 'container-')]")[0]
+                is_input = len(input_element.find_elements_by_xpath(".//*[contains(@class, 'input-')]")) > 0
+                is_dropbox = len(input_element.find_elements_by_xpath(".//*[contains(@class, 'button-')]")) > 0
                 
                 if is_input:
-                    value = input_element.find_elements_by_css_selector('.input-oiYdY6I4')[0].get_attribute("value")
+                    value = input_element.find_elements_by_xpath(".//*[contains(@class, 'input-')]")[0].get_attribute("value")
                     self.values.append(value)
                 elif is_dropbox:
-                    value = input_element.find_elements_by_class_name('button-children-nCHoYtuE')[0].text
+                    value = input_element.find_elements_by_xpath(".//*[contains(@class, 'button-children')]")[0].text
                     self.values.append(value)
                     
                 
@@ -482,8 +491,14 @@ class ChomeDriver(QObject):
             
             time.sleep(2)
             print('Capturing parameters')
-            content = self.driver.find_element_by_class_name('content-mTbR5jYu')
-            rows = content.find_elements_by_css_selector('.cell-mTbR5jYu')
+            
+            panel = self.driver.find_element_by_xpath("//*[contains(@data-name, 'indicator-properties-dialog')]")
+            
+            # content = self.driver.find_element_by_class_name('content-mTbR5jYu')
+            content = panel.find_elements_by_xpath(".//*[contains(@class, 'content-')]")[0]
+            
+            # rows = content.find_elements_by_css_selector('.cell-mTbR5jYu')
+            rows = content.find_elements_by_xpath(".//*[contains(@class, 'cell-')]")
             fields = []
             self.parameters = []
             i = 0
@@ -496,18 +511,31 @@ class ChomeDriver(QObject):
                 
                 is_checkbox = 'fill' in rows[i].get_attribute('class')
                 options = []
-                
+                is_free = False
                 if not is_checkbox:    
-                    input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
-                    is_input = len(input_element.find_elements_by_css_selector('.input-oiYdY6I4')) > 0
-                    is_dropbox = len(input_element.find_elements_by_class_name('button-allnSfnt')) > 0
+                    # input_element = rows[i+1].find_elements_by_css_selector('.container-Mtq7m9Yl')[0]
+                    input_element = rows[i+1].find_elements_by_xpath(".//*[contains(@class, 'container-')]")[0]
+                    is_input = len(input_element.find_elements_by_xpath(".//*[contains(@class, 'input-')]")) > 0
+                    is_dropbox = len(input_element.find_elements_by_xpath(".//*[contains(@class, 'button-')]")) > 0
+                    # # trying to differentiate between just an input and dropbox which looks like an input
+                    # input_element.click()
+                    # try:
+                    #     self.driver.find_element_by_class_name('menuBox-biWYdsXC')
+                    #     is_dropbox = True
+                    # except Exception as e:
+                    #     pass
+                    if is_input:
+                        value = input_element.find_elements_by_xpath(".//*[contains(@class, 'input-')]")[0].get_attribute("value")
+                        is_free = True if re.match(r'^\d{4}-\d{4}$', value) else False
+                        pass
+                    
                     # is_checkbox = len(input_element.find_elements_by_class_name('checkbox-dV7I8XN5')) > 0
                     
                     # input_element = input_element.find_elements_by_css_selector('.container-Mtq7m9Yl')[0].find_element_by_class_name('inner-slot-yJbunXPO').find_elements_by_css_selector('*')[0]
                     if is_dropbox:
-                        element = input_element.find_elements_by_class_name('button-allnSfnt')[0]
+                        element = input_element.find_elements_by_xpath(".//*[contains(@class, 'button-')]")[0]
                         self.click(element)
-                        options = [o.text for o in self.driver.find_element_by_class_name('menuBox-biWYdsXC').find_elements_by_css_selector('[role="option"]')]
+                        options = [o.text for o in self.driver.find_element_by_xpath(".//*[contains(@class, 'menuBox-')]").find_elements_by_css_selector('[role="option"]')]
                         self.click(element)
                 else:
                     is_input = False
@@ -516,6 +544,7 @@ class ChomeDriver(QObject):
                 self.parameters.append(label)
                 field = {'label': label, 
                             'is_input':is_input, 
+                            'is_free': is_free,
                             'is_dropbox':is_dropbox, 
                             'is_checkbox':is_checkbox, 
                             'value':options}
@@ -524,7 +553,7 @@ class ChomeDriver(QObject):
                 i = i+1 if is_checkbox else i+2
 
 
-            self.click(self.driver.find_element_by_class_name('close-HS2PTQRJ'))
+            self.click(self.driver.find_element_by_xpath(".//*[contains(@class, 'close-')]"))
             
             
             
