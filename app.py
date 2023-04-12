@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
-    QFrame,
+    QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLineEdit,
@@ -64,7 +64,7 @@ class Form(QMainWindow):
         self.initUI()
     
     def clear_layout(self, layout):
-        while layout.count() > 4:
+        while layout.count() > 3:
             item = layout.takeAt(1)
             widget = item.widget()
             if widget is not None:
@@ -128,16 +128,13 @@ class Form(QMainWindow):
         for i, row in enumerate(self.form_data):
             if row["is_input"]:
                 use = self.form_data[i]['useW'].isChecked()
+                # value = self.form_data[i]['valW'].text()
+                max = float(self.form_data[i]['maxW'].text())
+                min = float(self.form_data[i]['minW'].text())
+                step = float(self.form_data[i]['stepW'].text())
+                
                 if use:
-                    if row['is_free']:
-                        value = [val for val in self.form_data[i]['valW'].text().split(';') if len(val) > 0]
-                        
-                    else:
-                        # value = self.form_data[i]['valW'].text()
-                        max = float(self.form_data[i]['maxW'].text())
-                        min = float(self.form_data[i]['minW'].text())
-                        step = float(self.form_data[i]['stepW'].text())
-                        value = np.arange(min, max, step).round(2).tolist()
+                    value = np.arange(min, max+step, step).round(2).tolist()
                 else:
                     value = [None]
                       
@@ -254,12 +251,16 @@ class Form(QMainWindow):
         
         layout3.setContentsMargins(9,0,9,0)
         
+        
+        
         group_box_layout2.addWidget(w1)
         group_box_layout2.addWidget(w2)
         group_box_layout2.addWidget(w3)
         group_box_layout2.setSpacing(4)
         
+        
         group_box2.setLayout(group_box_layout2)
+        
         
         logo = QLabel()
         logo.setAlignment(Qt.AlignHCenter)
@@ -267,17 +268,9 @@ class Form(QMainWindow):
         # logo.setTextFormat()
         logo.setText('<font color="black"> Opti</font><font color="#0370BE">MORA</font>')
         
-        self.top_panel = QGroupBox()
-        self.top_panel.setStyleSheet('QGroupBox {border: 2px solid #FF0000;}')
-        self.top_panel.setLayout(QVBoxLayout())
-        
         self.layout_.addWidget(logo)
         self.layout_.addWidget(group_box2)
         self.layout_.addWidget(group_box)
-        self.layout_.addWidget(self.top_panel)
-        
-        
-        
         
         # self.setCentralWidget(self.widget)
         # self.setLayout(self.layout_)
@@ -299,133 +292,55 @@ class Form(QMainWindow):
             main_widget = None
             
             if row["is_input"]:
-                if row['is_free']:
-                    # main_widget = QComboBox()
-                    # main_widget.addItems(row["value"])
-                    main_widget = QLineEdit()
-                    
-                    options_widget = QLineEdit('')
-                    options_widget.setPlaceholderText('Separate choices using ";"')
-                    deselect = QPushButton('Deselect')
-                    deselect.check_use = check_use
-                    deselect.clicked.connect(self.deselect)
-                    deselect.setMaximumWidth(64)
-                    input_layout = QHBoxLayout()
-                    input_layout.addWidget(QLabel(label))
-                    # input_layout.addWidget(main_widget)
-                    input_layout.addWidget(options_widget)
-                    input_layout.addWidget(deselect)
-                    input_frame = QFrame()
-                    input_frame.setLayout(input_layout)
-                    
-                    self.form_data[i]['box'] = input_frame
-                    self.form_data[i]['useW'] = check_use
-                    self.form_data[i]['valW'] = options_widget
-                    
-                else:
+                main_widget = QLineEdit()
+                min_widget = QDoubleSpinBox()
+                min_widget.setMaximum(99999)
+                min_widget.setMinimum(0.1)
+                # min_widget.setSpecialValueText("-Infinity")
+                max_widget = QDoubleSpinBox()
+                max_widget.setMaximum(99999)
                 
-                    main_widget = QLineEdit()
-                    min_widget = QDoubleSpinBox()
-                    min_widget.setMaximum(99999)
-                    min_widget.setMinimum(-99999)
-                    min_widget.setValue(0.0)
-                    # min_widget.setSpecialValueText("-Infinity")
-                    max_widget = QDoubleSpinBox()
-                    max_widget.setMaximum(99999)
-                    max_widget.setMinimum(-99999)
-                    max_widget.setValue(0.0)
-                    
-                    step_widget = QDoubleSpinBox()
-                    step_widget.setMaximum(99999)
-                    step_widget.setMinimum(0.1)
+                step_widget = QDoubleSpinBox()
+                step_widget.setMaximum(99999)
+                step_widget.setMinimum(0.1)
 
-                    # max_widget.setSpecialValueText("Infinity")
-                    input_layout = QHBoxLayout()
-                    input_layout.addWidget(QLabel(label))
-                    
-                    input_layout.addWidget(main_widget)
-                    L = QLabel('Min')
-                    L.setAlignment(Qt.AlignCenter)
-                    input_layout.addWidget(L)
-                    input_layout.addWidget(min_widget)
-                    
-                    L = QLabel('Max')
-                    L.setAlignment(Qt.AlignCenter)
-                    input_layout.addWidget(L)
-                    input_layout.addWidget(max_widget)
-                    
-                    L = QLabel('Step')
-                    L.setAlignment(Qt.AlignCenter)
-                    deselect = QPushButton('Deselect')
-                    deselect.check_use = check_use
-                    deselect.clicked.connect(self.deselect)
-                    
-                    deselect.setMaximumWidth(64)
-                    input_layout.addWidget(L)
-                    input_layout.addWidget(step_widget)
-                    input_layout.addWidget(deselect)
-                    
-                    input_frame = QFrame()
-                    input_frame.setLayout(input_layout)
-                    # group_box_layout.addLayout(input_layout)
-                    self.form_data[i]['box'] = input_frame
-                    
-                    self.form_data[i]['useW'] = check_use
-                    self.form_data[i]['valW'] = main_widget
-                    self.form_data[i]['maxW'] = max_widget
-                    self.form_data[i]['minW'] = min_widget
-                    self.form_data[i]['stepW'] = step_widget
+                # max_widget.setSpecialValueText("Infinity")
+                input_layout = QHBoxLayout()
+                input_layout.addWidget(main_widget)
+                input_layout.addWidget(QLabel('Min'))
+                input_layout.addWidget(min_widget)
+                input_layout.addWidget(QLabel('Max'))
+                input_layout.addWidget(max_widget)
                 
-                check_use.order = i
+                input_layout.addWidget(QLabel('Step'))
+                input_layout.addWidget(step_widget)
+                group_box_layout.addLayout(input_layout)
+                
+                self.form_data[i]['useW'] = check_use
+                self.form_data[i]['valW'] = main_widget
+                self.form_data[i]['maxW'] = max_widget
+                self.form_data[i]['minW'] = min_widget
+                self.form_data[i]['stepW'] = step_widget
                 
             elif row["is_dropbox"]:
                 main_widget = QComboBox()
                 main_widget.addItems(row["value"])
                 
                 options_widget = QLineEdit(';'.join(self.form_data[i]['value']))
-                deselect = QPushButton('Deselect')
-                deselect.check_use = check_use
-                deselect.clicked.connect(self.deselect)
-                deselect.setMaximumWidth(64)
-                input_layout = QHBoxLayout()
-                input_layout.addWidget(QLabel(label))
-                input_layout.addWidget(main_widget)
-                input_layout.addWidget(options_widget)
-                input_layout.addWidget(deselect)
-                input_frame = QFrame()
-                input_frame.setLayout(input_layout)
-                # group_box_layout.addWidget(main_widget)
-                # group_box_layout.addWidget(options_widget)
-                self.form_data[i]['box'] = input_frame
+                
+                group_box_layout.addWidget(main_widget)
+                group_box_layout.addWidget(options_widget)
                 
                 self.form_data[i]['useW'] = check_use
                 self.form_data[i]['dropW'] = main_widget
                 self.form_data[i]['dropOpts'] = options_widget
                 
-                check_use.order = i
-                
             elif row["is_checkbox"]:
                 main_widget = QCheckBox()
                 group_box_layout.addWidget(main_widget)
-                deselect = QPushButton('Deselect')
-                deselect.check_use = check_use
-                deselect.clicked.connect(self.deselect)
-                deselect.setMaximumWidth(64)
-                input_layout = QHBoxLayout()
-                input_layout.addWidget(QLabel(label))
-                input_layout.addWidget(deselect)
                 
-                
-                
-                
-                input_frame = QFrame()
-                input_frame.setLayout(input_layout)
-                
-                self.form_data[i]['box'] = input_frame
                 self.form_data[i]['useW'] = check_use
                 self.form_data[i]['checkW'] = main_widget
-                
-                check_use.order = i
                 
             if main_widget:
                 main_widget.setVisible(False)
@@ -443,43 +358,10 @@ class Form(QMainWindow):
                     all_opts.setEnabled(False)
                     check_use.stateChanged.connect(lambda state, w=all_opts: self.enable_disable_opts(state, w))
                 
-                check_use.stateChanged.connect(self.color_change)
-                check_use.stateChanged.connect(self.handle_top_panel)
-                
                 group_box_layout.addWidget(main_widget)
                 group_box.setLayout(group_box_layout)
-                
                 self.layout_.addWidget(group_box)
 
-    def deselect(self):
-        checkbox = self.sender().check_use
-        checkbox.setChecked(False)
-    
-    def handle_top_panel(self, state):
-        checkbox = self.sender()
-        i = checkbox.order
-        frame = self.form_data[i]['box']
-        if frame is None:
-            return
-        
-        top_panel_layout:QVBoxLayout = self.top_panel.layout()
-        if state:
-            top_panel_layout.addWidget(frame)
-            frame.setVisible(True)
-            
-        else:
-            for i in reversed(range(top_panel_layout.count())):
-                item = top_panel_layout.itemAt(i)
-                if item.widget() == frame:
-                    top_panel_layout.removeItem(item) 
-                    frame.setParent(None)
-                    frame.setVisible(False)
-                    
-
-    def color_change(self, state):
-        color = "#e7ebfe" if state else "None"
-        self.sender().parent().setStyleSheet(f'background-color: {color};')
-    
     def enable_disable_widgets(self, state, widget, min_edit, max_edit, step_edit):
         if state == 2:
             widget.setEnabled(False)
