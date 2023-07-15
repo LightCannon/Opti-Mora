@@ -123,6 +123,7 @@ class ChomeDriver(QObject):
             
             # self.navigate_to_strategy(False)
         
+        
         defaults = self.capture_defaults()
         defaults.append(' ')
         defaults.append(' ')
@@ -137,15 +138,19 @@ class ChomeDriver(QObject):
         
         # making sure tickers are active
         self.wait.until(EC.presence_of_element_located((By.XPATH, ".//*[contains(@class, 'symbolName-')]")))
-        tickers = self.driver.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
+        
+        
+        tickersPane = self.driver.find_elements_by_xpath(".//*[contains(@class, 'listContainer-')]")[0]
+        tickers = tickersPane.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
         activeTicker = kwargs.get('activeTicker')
+        
         isdeep = kwargs.get('isdeep')
         deep = self.driver.find_elements_by_xpath(".//*[contains(@class, 'input-') and @role='switch']")[-1]
         state = deep.is_selected()
+        
         if isdeep^state:
             self.click(deep)
-                
-                
+                       
         idx = 0
         for ti in range(len(tickers)): 
             if not activeTicker:
@@ -154,8 +159,6 @@ class ChomeDriver(QObject):
                 self.delay(4)
 
             tickername = self.driver.find_elements_by_xpath(".//*[contains(@id, 'symbol-search')]")[0].text
-            # making sure deep is selected if wanted
-            
             
             # populating values    
             for j, combination in enumerate(combinations):
@@ -223,8 +226,18 @@ class ChomeDriver(QObject):
                 if isdeep:
                     generate = self.driver.find_element_by_xpath(".//*[contains(@class, 'generateReportBtn')]")
                     generate.click()
-                
-                
+                    
+                    deep = self.driver.find_elements_by_xpath(".//*[contains(@class, 'input-') and @role='switch']")[-1]
+                    state = deep.is_selected()
+                    
+                    if state:
+                        # turn it off
+                        self.click(deep)
+                        time.sleep(0.3)
+                        # and on again
+                        self.click(deep)
+
+
                 self.wait.until(EC.element_to_be_clickable((By.XPATH, '//button[text()="List of Trades"]')))
                 # capturing
                 self.driver.find_element(By.XPATH, '//button[text()="List of Trades"]').click()
@@ -242,7 +255,7 @@ class ChomeDriver(QObject):
                 # download_btn.click()
                 # Wait for download
                 secs = self.download_wait(os.getenv('DOWNLOAD_PATH'), 200, idx+1)
-                print(secs)
+                # print(secs)
                 
                 # rename it
                 files = glob.glob(os.path.join(os.getenv('DOWNLOAD_PATH') , '*'))
@@ -287,7 +300,8 @@ class ChomeDriver(QObject):
             
             # just updating again
             self.wait.until(EC.presence_of_element_located((By.XPATH, ".//*[contains(@class, 'symbolName-')]")))
-            tickers = self.driver.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
+            tickersPane = self.driver.find_elements_by_xpath(".//*[contains(@class, 'listContainer-')]")[0]
+            tickers = tickersPane.find_elements_by_xpath(".//*[contains(@class, 'symbolName-')]")
 
         tstamp = datetime.now().strftime("%m-%d-%Y--%H-%M-%S")
         summary_data[1][-1] = summary_data[2][-1]

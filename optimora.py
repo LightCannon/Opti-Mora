@@ -137,7 +137,9 @@ class Form(QMainWindow):
                         max = float(self.form_data[i]['maxW'].text())
                         min = float(self.form_data[i]['minW'].text())
                         step = float(self.form_data[i]['stepW'].text())
-                        value = np.arange(min, max, step).round(2).tolist()
+                        # value = np.arange(min, max, step).round(2).tolist()
+                        num_samples = int((max - min) / step) + 1
+                        value = np.linspace(min, max, num_samples).round(2).tolist()
                 else:
                     value = [None]
                       
@@ -337,7 +339,8 @@ class Form(QMainWindow):
                     
                     step_widget = QDoubleSpinBox()
                     step_widget.setMaximum(99999)
-                    step_widget.setMinimum(0.1)
+                    step_widget.setMinimum(0.01)
+                    step_widget.setSingleStep(0.01)
 
                     # max_widget.setSpecialValueText("Infinity")
                     input_layout = QHBoxLayout()
